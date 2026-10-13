@@ -9,11 +9,13 @@ Proyek ini adalah sebuah aplikasi sistem pemrosesan data pesanan untuk layanan p
 py app.py
 ```
 ## Diagram
+```text
 [ Data Layer ] ──> [ Backend Layer ] ──> [ Frontend Layer ]
  pesanan.csv         m1_pesanan.py           app.py (CLI / GUI)
  peta.csv            (DynamicArray & 
                       LinkedList)
-                      
+```
+
 ## M1 Data Pesanan, Array vs Linked List
 Milestone ini bertujuan untuk mengelola daftar pesanan berdasarkan tingkatan prioritas (REGULER, PRIORITAS, dan VIP) menggunakan dua pendekatan struktur data Dynamic Array dan Linked List
 
