@@ -1,27 +1,69 @@
-import time
-from backend.m1_pesanan import Pesanan, muat_data_pesanan
-
-print("=== MEMUAT DATA PESANAN ===")
-start = time.time()
-# Memuat 10.000 data pertama untuk pengujian M1
-array_pesanan, list_pesanan = muat_data_pesanan("data/pesanan.csv", limit=10000)
-end = time.time()
-print(
-    f"Selesai muat {len(array_pesanan)} data dalam {end - start:.4f} detik.\n"
+# app.py
+from backend.m2_antrean import (
+    ke_postfix, hitung, 
+    AntreanNaif, AntreanMelingkar, 
+    ManajerUndoRedo
 )
 
-# Pesanan uji baru (VIP)
-p_vip = Pesanan("O-999999", "Budi", "Kafe-Teknik", "Kopi", 15000, 1)
+def run_m2_tests():
+    print("==================================================")
+    print("           2EZ4U ENGINE - MILESTONE 2             ")
+    print("==================================================")
 
-print("=== UJI TAMBAH PESANAN VIP (DI DEPAN) ===")
-# 1. Tes di Array
-t0 = time.time()
-array_pesanan.prepend(p_vip)
-t1 = time.time()
-print(f"Array Prepend (VIP)      : {(t1 - t0) * 1000:.4f} ms")
+    # 1. Modul Kasir (Infix -> Postfix -> Evaluasi)
+    print("\n[1] METODE KASIR & POSTFIX")
+    contoh_struk = [
+        "10000 + 5000 - 2000",
+        "(3 * 12000) + (2 * 8500) - 5000",
+        "((20000 - 5000) / 3) + 1000"
+    ]
+    for expr in contoh_struk:
+        postfix = ke_postfix(expr)
+        total = hitung(postfix)
+        print(f"  Infix   : {expr}")
+        print(f"  Postfix : {' '.join(postfix)}")
+        print(f"  Total   : Rp {total:,}\n")
 
-# 2. Tes di Linked List
-t0 = time.time()
-list_pesanan.prepend(p_vip)
-t1 = time.time()
-print(f"Linked List Prepend (VIP): {(t1 - t0) * 1000:.4f} ms")
+    # 2. Pengujian Antrean (Naif vs Circular)
+    print("[2] ANTREAN (NAIF VS CIRCULAR)")
+    q_kecil = AntreanMelingkar(capacity=4)
+    q_kecil.enqueue("ORD-001")
+    q_kecil.enqueue("ORD-002")
+    q_kecil.enqueue("ORD-003")
+    print(f"  Enqueue 3 data -> Size: {q_kecil.size()}")
+    print(f"  Dequeue 2 data -> Out: {q_kecil.dequeue()}, {q_kecil.dequeue()}")
+    
+    # Putar pointer
+    q_kecil.enqueue("ORD-004")
+    q_kecil.enqueue("ORD-005")
+    q_kecil.enqueue("ORD-006")
+    print(f"  Enqueue 3 data lagi (Pointer Wrap-around) -> Front: {q_kecil.front}, Rear: {q_kecil.rear}")
+
+    # 3. Manajer Undo / Redo & Stats
+    print("\n[3] UNDO / REDO & STATISTIK")
+    q_naif = AntreanNaif(1000)
+    q_circ = AntreanMelingkar(1000)
+    manager = ManajerUndoRedo(q_naif, q_circ)
+
+    # Simulasi transaksi
+    q_naif.enqueue("ORD-101")
+    q_circ.enqueue("ORD-101")
+    manager.catat_aksi("ENQUEUE", "ORD-101")
+
+    q_naif.dequeue()
+    q_circ.dequeue()
+    manager.catat_aksi("DEQUEUE", "ORD-101")
+
+    # Ambil statistik sistem
+    stats = manager.stats()
+    print("  System Stats:")
+    for key, val in stats.items():
+        print(f"    {key}: {val}")
+
+    print("\n==================================================")
+    print("Execution finished.")
+    print("==================================================")
+
+
+if __name__ == "__main__":
+    run_m2_tests()

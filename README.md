@@ -16,7 +16,7 @@ py app.py
                       LinkedList)
 ```
 
-## M1 Data Pesanan, Array vs Linked List
+## M1: Data Pesanan, Array vs Linked List
 Milestone ini bertujuan untuk mengelola daftar pesanan berdasarkan tingkatan prioritas (REGULER, PRIORITAS, dan VIP) menggunakan dua pendekatan struktur data Dynamic Array dan Linked List
 
 | Operasi | Dynamic Array | Linked List | Analisis Ringkas |
@@ -27,6 +27,19 @@ Milestone ini bertujuan untuk mengelola daftar pesanan berdasarkan tingkatan pri
 | **Tambah VIP (Depan)** | 0.622 ms | **0.008 ms** | Linked List jauh lebih cepat (O(1)) karena Array wajib menggeser semua elemen (O(n)). |
 | **Hapus Pesanan (ke-i)** | 1.200 ms | **0.950 ms** | Keduanya O(n) untuk penyesuaian posisi sisa elemen. |
 
+## M2: Stack vs Circular Queue
+Pengujian mekanik LIFO (Stack) dan FIFO (Circular Queue) menggunakan sampel 200.000 data pesanan:
+
+| Struktur Data | Operasi Utama | Waktu Eksekusi | Kompleksitas | Kegunaan dalam Sistem |
+| :--- | :--- | :--- | :--- | :--- |
+| **Stack (LIFO)** | `Push` (Tambah) | ~40.24 ms | $O(1)$ amortized | Riwayat pembatalan pesanan (*Undo*) |
+| | `Pop` (Ambil) | **0.007 ms** | $O(1)$ | Membatalkan pesanan terakhir |
+| **Circular Queue (FIFO)** | `Enqueue` (Tambah) | ~37.22 ms | $O(1)$ amortized | Antrean masuk driver |
+| | `Dequeue` (Ambil) | **0.005 ms** | $O(1)$ | Memproses pesanan paling awal |
+
+- **Stack** memastikan pesanan yang paling baru masuk bisa langsung dibatalkan secara *instant* ($O(1)$) tanpa mengganggu pesanan lain.
+- **Circular Queue** menggunakan pemutaran indeks (*modulo array*) sehingga pengeluaran antrean terdepan berjalan $O(1)$ tanpa perlu menggeser ribuan data di belakangnya.
+
 ## Struktur Folder
 ```text
 2ez4u/
@@ -36,7 +49,8 @@ Milestone ini bertujuan untuk mengelola daftar pesanan berdasarkan tingkatan pri
 │   ├── pesanan.csv
 │   └── peta.csv
 ├── backend/
-│   └── m1_pesanan.py
+│   ├── m1_pesanan.py
+│   └── m2_antrean.py
 └── frontend/
     └── ui.py
 ```
