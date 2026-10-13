@@ -44,7 +44,7 @@ class Stack:
 
 
 # =============================================================
-# 1. MESIN KASIR: STRUK INFIX KE POSTFIX & EVALUASI
+# 1. MESIN KASIR STRUK: INFIX KE POSTFIX & EVALUASI
 # =============================================================
 
 def tokenisasi(ekspresi):
@@ -110,25 +110,21 @@ def hitung(postfix):
         if token.isdigit():
             stack_val.push(int(token))
         elif token in ('+', '-', '*', '/'):
-            b = stack_val.pop()  # Operand kanan (urutan pop penting!)
+            b = stack_val.pop()  # Operand kanan
             a = stack_val.pop()  # Operand kiri
             if a is None or b is None:
                 continue
-            if token == '+':
-                res = a + b
-            elif token == '-':
-                res = a - b
-            elif token == '*':
-                res = a * b
-            elif token == '/':
-                res = a // b if b != 0 else 0
+            if token == '+': res = a + b
+            elif token == '-': res = a - b
+            elif token == '*': res = a * b
+            elif token == '/': res = a // b if b != 0 else 0
             stack_val.push(res)
 
     return stack_val.pop()
 
 
 # =============================================================
-# 2. FITUR QUEUE: NAIF VS MELINGKAR
+# 2. FITUR QUEUE: NAIF VS MELINGKAR (DENGAN ENQUEUE FRONT UNTUK UNDO)
 # =============================================================
 
 class AntreanNaif:
@@ -151,6 +147,16 @@ class AntreanNaif:
         self.data[self.count] = item
         self.count += 1
 
+    def enqueue_front(self, item):
+        """Disisipkan kembali ke paling depan saat UNDO DEQUEUE"""
+        if self.count == self.capacity:
+            self._resize(self.capacity * 2)
+        for i in range(self.count, 0, -1):
+            self.data[i] = self.data[i - 1]
+            self.total_geseran += 1
+        self.data[0] = item
+        self.count += 1
+
     def dequeue(self):
         if self.count == 0:
             return None
@@ -158,6 +164,15 @@ class AntreanNaif:
         for i in range(1, self.count):
             self.data[i - 1] = self.data[i]
             self.total_geseran += 1
+        self.data[self.count - 1] = None
+        self.count -= 1
+        return item
+
+    def pop_back(self):
+        """Membuang elemen paling belakang saat UNDO ENQUEUE"""
+        if self.count == 0:
+            return None
+        item = self.data[self.count - 1]
         self.data[self.count - 1] = None
         self.count -= 1
         return item
@@ -190,6 +205,14 @@ class AntreanMelingkar:
         self.data[self.rear] = item
         self.count += 1
 
+    def enqueue_front(self, item):
+        """Disisipkan kembali ke depan antrean circular (O(1)) saat UNDO DEQUEUE"""
+        if self.count == self.capacity:
+            self._resize(self.capacity * 2)
+        self.front = (self.front - 1 + self.capacity) % self.capacity
+        self.data[self.front] = item
+        self.count += 1
+
     def dequeue(self):
         if self.count == 0:
             return None
@@ -199,12 +222,22 @@ class AntreanMelingkar:
         self.count -= 1
         return item
 
+    def pop_back(self):
+        """Membuang elemen paling belakang saat UNDO ENQUEUE"""
+        if self.count == 0:
+            return None
+        item = self.data[self.rear]
+        self.data[self.rear] = None
+        self.rear = (self.rear - 1 + self.capacity) % self.capacity
+        self.count -= 1
+        return item
+
     def size(self):
         return self.count
 
 
 # =============================================================
-# 3. MANAJER UNDO / REDO & STATISTIK (POIN 8 & 9)
+# 3. MANAJER UNDO & REDO NYATA (EKSEKUSI PEMBATALAN ANTREAN)
 # =============================================================
 
 class ManajerUndoRedo:
@@ -221,24 +254,44 @@ class ManajerUndoRedo:
     def undo_last(self):
         if self.undo_stack.is_empty():
             return None
+        
         aksi = self.undo_stack.pop()
+        jenis, data = aksi
+
+        # Eksekusi Kebalikan Aksi pada Antrean
+        if jenis == "ENQUEUE":
+            self.q_naif.pop_back()
+            self.q_circular.pop_back()
+        elif jenis == "DEQUEUE":
+            self.q_naif.enqueue_front(data)
+            self.q_circular.enqueue_front(data)
+
         self.redo_stack.push(aksi)
         return aksi
 
     def redo_last(self):
         if self.redo_stack.is_empty():
             return None
+
         aksi = self.redo_stack.pop()
+        jenis, data = aksi
+
+        # Kerjakan Ulang Aksi Asli
+        if jenis == "ENQUEUE":
+            self.q_naif.enqueue(data)
+            self.q_circular.enqueue(data)
+        elif jenis == "DEQUEUE":
+            self.q_naif.dequeue()
+            self.q_circular.dequeue()
+
         self.undo_stack.push(aksi)
         return aksi
 
     def stats(self):
-        """Memenuhi Rekomendasi Poin 9"""
         return {
             "queue_len_naif": self.q_naif.size(),
             "queue_len_circular": self.q_circular.size(),
-            "queue_capacity_naif": self.q_naif.capacity,
-            "queue_capacity_circular": self.q_circular.capacity,
+            "queue_capacity": self.q_circular.capacity,
             "total_geseran": self.q_naif.total_geseran,
             "undo_depth": self.undo_stack.size(),
             "redo_depth": self.redo_stack.size()
