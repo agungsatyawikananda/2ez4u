@@ -27,8 +27,8 @@ Milestone ini bertujuan untuk mengelola daftar pesanan berdasarkan tingkatan pri
 | **Tambah VIP (Depan)** | 0.622 ms | **0.008 ms** | Linked List jauh lebih cepat (O(1)) karena Array wajib menggeser semua elemen (O(n)). |
 | **Hapus Pesanan (ke-i)** | 1.200 ms | **0.950 ms** | Keduanya O(n) untuk penyesuaian posisi sisa elemen. |
 
-## M2: Stack vs Circular Queue
-Pengujian mekanik LIFO (Stack) dan FIFO (Circular Queue) menggunakan sampel 200.000 data pesanan:
+## M2: Stack vs Queue
+Pengujian mekanik LIFO (Stack) dan FIFO (Circular Queue) menggunakan sampel 200.000 data pesananan, beserta fitur undo redo untuk membatalkan atau mengembalikan tindakan terakhir.
 
 | Struktur Data | Operasi Utama | Waktu Eksekusi | Kompleksitas | Kegunaan dalam Sistem |
 | :--- | :--- | :--- | :--- | :--- |
@@ -40,6 +40,15 @@ Pengujian mekanik LIFO (Stack) dan FIFO (Circular Queue) menggunakan sampel 200.
 - **Stack** memastikan pesanan yang paling baru masuk bisa langsung dibatalkan secara *instant* ($O(1)$) tanpa mengganggu pesanan lain.
 - **Circular Queue** menggunakan pemutaran indeks (*modulo array*) sehingga pengeluaran antrean terdepan berjalan $O(1)$ tanpa perlu menggeser ribuan data di belakangnya.
 
+## M3: Search & Sort
+Menambahkan fitur pencarian (searching) dan pengurutan (sorting)
+1. Searching
+ - Linear Search (O(n)): Mencari data satu per satu dari paling depan
+ - Binary Search (O(log n)): Mencari data dengan membagi dua area pencarian secara berulang hingga menemukan target, dengan syarat data harus terurut *ascending*
+2. Sorting
+- Insertion Sort: Mengurutkan data dengan menyisipkan setiap elemen ke posisi yang tepat pada bagian yang sudah terurut
+- Merge Sort: Mengurutkan data memakai metode Divide and Conquer dengan membagi dua array secara rekursif dan menggabungkannya kembali secara terurut.
+
 ## Struktur Folder
 ```text
 2ez4u/
@@ -50,7 +59,8 @@ Pengujian mekanik LIFO (Stack) dan FIFO (Circular Queue) menggunakan sampel 200.
 │   └── peta.csv
 ├── backend/
 │   ├── m1_pesanan.py
-│   └── m2_antrean.py
+│   ├── m2_antrean.py
+    └── m3_laporan.py
 └── frontend/
     └── ui.py
 ```
