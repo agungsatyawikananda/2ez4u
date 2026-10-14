@@ -1,264 +1,202 @@
 # backend/m2_antrean.py
 
 class Stack:
-    """Struktur Data Stack (LIFO) buatan sendiri"""
-    def __init__(self, initial_capacity=10):
-        self.capacity = initial_capacity
-        self.data = [None] * self.capacity
+    def __init__(self, cap=10):
+        self.cap = cap
+        self.data = [None] * self.cap
         self.top = -1
 
-    def is_empty(self):
-        return self.top == -1
+    def is_empty(self): return self.top == -1
+    def size(self): return self.top + 1
 
-    def is_full(self):
-        return self.top == self.capacity - 1
-
-    def _resize(self, new_capacity):
-        new_data = [None] * new_capacity
+    def _resize(self, new_cap):
+        new_data = [None] * new_cap
         for i in range(self.top + 1):
             new_data[i] = self.data[i]
         self.data = new_data
-        self.capacity = new_capacity
+        self.cap = new_cap
 
-    def push(self, item):
-        if self.is_full():
-            self._resize(self.capacity * 2)
+    def push(self, val):
+        if self.top == self.cap - 1:
+            self._resize(self.cap * 2)
         self.top += 1
-        self.data[self.top] = item
+        self.data[self.top] = val
 
     def pop(self):
-        if self.is_empty():
-            return None
-        item = self.data[self.top]
+        if self.is_empty(): return None
+        val = self.data[self.top]
         self.data[self.top] = None
         self.top -= 1
-        return item
+        return val
 
     def peek(self):
-        if self.is_empty():
-            return None
-        return self.data[self.top]
-
-    def size(self):
-        return self.top + 1
+        return None if self.is_empty() else self.data[self.top]
 
 
-# =============================================================
-# 1. MESIN KASIR STRUK: INFIX KE POSTFIX & EVALUASI
-# =============================================================
+# --- STRUK KASIR (POSTFIX) ---
 
-def tokenisasi(ekspresi):
-    tokens = []
-    i = 0
-    n = len(ekspresi)
+def tokenisasi(expr):
+    tokens, i, n = [], 0, len(expr)
     while i < n:
-        ch = ekspresi[i]
-        if ch == ' ':
+        if expr[i] == ' ':
             i += 1
-            continue
-        if ch in "0123456789":
+        elif expr[i].isdigit():
             num = ""
-            while i < n and ekspresi[i] in "0123456789":
-                num += ekspresi[i]
+            while i < n and expr[i].isdigit():
+                num += expr[i]
                 i += 1
             tokens.append(num)
         else:
-            tokens.append(ch)
+            tokens.append(expr[i])
             i += 1
     return tokens
 
+def prioritas(op):
+    return 2 if op in ('*', '/') else (1 if op in ('+', '-') else 0)
 
-def prioritas_op(op):
-    if op in ('*', '/'):
-        return 2
-    if op in ('+', '-'):
-        return 1
-    return 0
-
-
-def ke_postfix(ekspresi):
-    tokens = tokenisasi(ekspresi)
-    stack_op = Stack()
-    postfix = []
-
-    for token in tokens:
-        if token.isdigit():
-            postfix.append(token)
-        elif token == '(':
-            stack_op.push(token)
-        elif token == ')':
-            while not stack_op.is_empty() and stack_op.peek() != '(':
-                postfix.append(stack_op.pop())
-            if not stack_op.is_empty() and stack_op.peek() == '(':
-                stack_op.pop()
-        elif token in ('+', '-', '*', '/'):
-            while (not stack_op.is_empty() and 
-                   stack_op.peek() != '(' and 
-                   prioritas_op(stack_op.peek()) >= prioritas_op(token)):
-                postfix.append(stack_op.pop())
-            stack_op.push(token)
-
-    while not stack_op.is_empty():
-        postfix.append(stack_op.pop())
-
-    return postfix
-
+def ke_postfix(expr):
+    tokens = tokenisasi(expr)
+    st, pf = Stack(), []
+    for t in tokens:
+        if t.isdigit():
+            pf.append(t)
+        elif t == '(':
+            st.push(t)
+        elif t == ')':
+            while not st.is_empty() and st.peek() != '(':
+                pf.append(st.pop())
+            st.pop()  # Pop '('
+        else:
+            while not st.is_empty() and st.peek() != '(' and prioritas(st.peek()) >= prioritas(t):
+                pf.append(st.pop())
+            st.push(t)
+    while not st.is_empty():
+        pf.append(st.pop())
+    return pf
 
 def hitung(postfix):
-    stack_val = Stack()
-    for token in postfix:
-        if token.isdigit():
-            stack_val.push(int(token))
-        elif token in ('+', '-', '*', '/'):
-            b = stack_val.pop()  # Operand kanan
-            a = stack_val.pop()  # Operand kiri
-            if a is None or b is None:
-                continue
-            if token == '+': res = a + b
-            elif token == '-': res = a - b
-            elif token == '*': res = a * b
-            elif token == '/': res = a // b if b != 0 else 0
-            stack_val.push(res)
-
-    return stack_val.pop()
+    st = Stack()
+    for t in postfix:
+        if t.isdigit():
+            st.push(int(t))
+        else:
+            b, a = st.pop(), st.pop()
+            if a is None or b is None: continue
+            if t == '+': st.push(a + b)
+            elif t == '-': st.push(a - b)
+            elif t == '*': st.push(a * b)
+            elif t == '/': st.push(a // b if b != 0 else 0)
+    return st.pop()
 
 
-# =============================================================
-# 2. FITUR QUEUE: NAIF VS MELINGKAR (DENGAN ENQUEUE FRONT UNTUK UNDO)
-# =============================================================
+# --- QUEUE NAIF VS CIRCULAR ---
 
 class AntreanNaif:
-    def __init__(self, capacity=1000):
-        self.capacity = capacity
-        self.data = [None] * self.capacity
+    def __init__(self, cap=1000):
+        self.cap = cap
+        self.data = [None] * self.cap
         self.count = 0
         self.total_geseran = 0
 
-    def _resize(self, new_capacity):
-        new_data = [None] * new_capacity
+    def size(self): return self.count
+
+    def _resize(self, new_cap):
+        new_data = [None] * new_cap
         for i in range(self.count):
             new_data[i] = self.data[i]
-        self.data = new_data
-        self.capacity = new_capacity
+        self.data, self.cap = new_data, new_cap
 
-    def enqueue(self, item):
-        if self.count == self.capacity:
-            self._resize(self.capacity * 2)
-        self.data[self.count] = item
+    def enqueue(self, val):
+        if self.count == self.cap: self._resize(self.cap * 2)
+        self.data[self.count] = val
         self.count += 1
 
-    def enqueue_front(self, item):
-        """Disisipkan kembali ke paling depan saat UNDO DEQUEUE"""
-        if self.count == self.capacity:
-            self._resize(self.capacity * 2)
+    def enqueue_front(self, val):
+        if self.count == self.cap: self._resize(self.cap * 2)
         for i in range(self.count, 0, -1):
             self.data[i] = self.data[i - 1]
             self.total_geseran += 1
-        self.data[0] = item
+        self.data[0] = val
         self.count += 1
 
     def dequeue(self):
-        if self.count == 0:
-            return None
-        item = self.data[0]
+        if self.count == 0: return None
+        val = self.data[0]
         for i in range(1, self.count):
             self.data[i - 1] = self.data[i]
             self.total_geseran += 1
         self.data[self.count - 1] = None
         self.count -= 1
-        return item
+        return val
 
     def pop_back(self):
-        """Membuang elemen paling belakang saat UNDO ENQUEUE"""
-        if self.count == 0:
-            return None
-        item = self.data[self.count - 1]
+        if self.count == 0: return None
+        val = self.data[self.count - 1]
         self.data[self.count - 1] = None
         self.count -= 1
-        return item
-
-    def size(self):
-        return self.count
+        return val
 
 
 class AntreanMelingkar:
-    def __init__(self, capacity=1000):
-        self.capacity = capacity
-        self.data = [None] * self.capacity
-        self.front = 0
-        self.rear = -1
-        self.count = 0
+    def __init__(self, cap=1000):
+        self.cap = cap
+        self.data = [None] * self.cap
+        self.front, self.rear, self.count = 0, -1, 0
 
-    def _resize(self, new_capacity):
-        new_data = [None] * new_capacity
+    def size(self): return self.count
+
+    def _resize(self, new_cap):
+        new_data = [None] * new_cap
         for i in range(self.count):
-            new_data[i] = self.data[(self.front + i) % self.capacity]
+            new_data[i] = self.data[(self.front + i) % self.cap]
         self.data = new_data
-        self.front = 0
-        self.rear = self.count - 1
-        self.capacity = new_capacity
+        self.front, self.rear, self.cap = 0, self.count - 1, new_cap
 
-    def enqueue(self, item):
-        if self.count == self.capacity:
-            self._resize(self.capacity * 2)
-        self.rear = (self.rear + 1) % self.capacity
-        self.data[self.rear] = item
+    def enqueue(self, val):
+        if self.count == self.cap: self._resize(self.cap * 2)
+        self.rear = (self.rear + 1) % self.cap
+        self.data[self.rear] = val
         self.count += 1
 
-    def enqueue_front(self, item):
-        """Disisipkan kembali ke depan antrean circular (O(1)) saat UNDO DEQUEUE"""
-        if self.count == self.capacity:
-            self._resize(self.capacity * 2)
-        self.front = (self.front - 1 + self.capacity) % self.capacity
-        self.data[self.front] = item
+    def enqueue_front(self, val):
+        if self.count == self.cap: self._resize(self.cap * 2)
+        self.front = (self.front - 1 + self.cap) % self.cap
+        self.data[self.front] = val
         self.count += 1
 
     def dequeue(self):
-        if self.count == 0:
-            return None
-        item = self.data[self.front]
+        if self.count == 0: return None
+        val = self.data[self.front]
         self.data[self.front] = None
-        self.front = (self.front + 1) % self.capacity
+        self.front = (self.front + 1) % self.cap
         self.count -= 1
-        return item
+        return val
 
     def pop_back(self):
-        """Membuang elemen paling belakang saat UNDO ENQUEUE"""
-        if self.count == 0:
-            return None
-        item = self.data[self.rear]
+        if self.count == 0: return None
+        val = self.data[self.rear]
         self.data[self.rear] = None
-        self.rear = (self.rear - 1 + self.capacity) % self.capacity
+        self.rear = (self.rear - 1 + self.cap) % self.cap
         self.count -= 1
-        return item
-
-    def size(self):
-        return self.count
+        return val
 
 
-# =============================================================
-# 3. MANAJER UNDO & REDO NYATA (EKSEKUSI PEMBATALAN ANTREAN)
-# =============================================================
+# --- MANAJER UNDO / REDO ---
 
 class ManajerUndoRedo:
-    def __init__(self, q_naif: AntreanNaif, q_circular: AntreanMelingkar):
-        self.q_naif = q_naif
-        self.q_circular = q_circular
-        self.undo_stack = Stack()
-        self.redo_stack = Stack()
+    def __init__(self, q_naif, q_circular):
+        self.q_naif, self.q_circular = q_naif, q_circular
+        self.undo_st, self.redo_st = Stack(), Stack()
 
-    def catat_aksi(self, jenis_aksi, data):
-        self.redo_stack = Stack()  # Mengosongkan redo
-        self.undo_stack.push((jenis_aksi, data))
+    def catat_aksi(self, jenis, data):
+        self.redo_st = Stack()
+        self.undo_st.push((jenis, data))
 
     def undo_last(self):
-        if self.undo_stack.is_empty():
-            return None
-        
-        aksi = self.undo_stack.pop()
+        if self.undo_st.is_empty(): return None
+        aksi = self.undo_st.pop()
         jenis, data = aksi
 
-        # Eksekusi Kebalikan Aksi pada Antrean
         if jenis == "ENQUEUE":
             self.q_naif.pop_back()
             self.q_circular.pop_back()
@@ -266,17 +204,14 @@ class ManajerUndoRedo:
             self.q_naif.enqueue_front(data)
             self.q_circular.enqueue_front(data)
 
-        self.redo_stack.push(aksi)
+        self.redo_st.push(aksi)
         return aksi
 
     def redo_last(self):
-        if self.redo_stack.is_empty():
-            return None
-
-        aksi = self.redo_stack.pop()
+        if self.redo_st.is_empty(): return None
+        aksi = self.redo_st.pop()
         jenis, data = aksi
 
-        # Kerjakan Ulang Aksi Asli
         if jenis == "ENQUEUE":
             self.q_naif.enqueue(data)
             self.q_circular.enqueue(data)
@@ -284,15 +219,5 @@ class ManajerUndoRedo:
             self.q_naif.dequeue()
             self.q_circular.dequeue()
 
-        self.undo_stack.push(aksi)
+        self.undo_st.push(aksi)
         return aksi
-
-    def stats(self):
-        return {
-            "queue_len_naif": self.q_naif.size(),
-            "queue_len_circular": self.q_circular.size(),
-            "queue_capacity": self.q_circular.capacity,
-            "total_geseran": self.q_naif.total_geseran,
-            "undo_depth": self.undo_stack.size(),
-            "redo_depth": self.redo_stack.size()
-        }
